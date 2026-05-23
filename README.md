@@ -1,6 +1,6 @@
 # edge-speak
 
-> [English](./README-EN.md)
+> **[English README](./README-EN.md)**
 
 轻量级命令行 TTS 工具，基于 [edge-tts](https://github.com/rany2/edge-tts) 实现，支持对话场景下自动切换男女声。
 

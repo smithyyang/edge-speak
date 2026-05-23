@@ -1,6 +1,6 @@
 # edge-speak
 
-> [中文](./README.md)
+> **[中文 README](./README.md)**
 
 A lightweight CLI text-to-speech tool powered by [edge-tts](https://github.com/rany2/edge-tts) with automatic male/female voice switching for dialogue.
 

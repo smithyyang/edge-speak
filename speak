@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+import sys, re, subprocess, os, tempfile
+
+text = ' '.join(sys.argv[1:]) if len(sys.argv) > 1 else sys.stdin.read().strip()
+
+if not text:
+    print("Usage: speak <text>", file=sys.stderr)
+    print("       echo 'hello' | speak", file=sys.stderr)
+    print("       Mark dialogue with 男: / 女: for auto voice switching", file=sys.stderr)
+    sys.exit(1)
+
+VOICES = {"男": "en-GB-RyanNeural", "女": "en-GB-SoniaNeural"}
+DEFAULT_VOICE = "en-GB-RyanNeural"
+
+# Check if dialogue markers exist
+has_marker = bool(re.search(r'[男女女]:', text))
+
+if has_marker:
+    # Split by speaker markers
+    pattern = r'([男女女]):\s*'
+    parts = re.split(pattern, text)
+    # parts will be: [before, marker1, text1, marker2, text2, ...]
+    segments = []
+    for i in range(1, len(parts) - 1, 2):
+        speaker = parts[i]
+        content = parts[i + 1].strip()
+        voice = VOICES.get(speaker, DEFAULT_VOICE)
+        segments.append((voice, content))
+
+    if not segments:
+        segments = [(DEFAULT_VOICE, text)]
+
+    files = []
+    for voice, content in segments:
+        f = tempfile.mktemp(suffix='.mp3', dir='/tmp')
+        subprocess.run(["edge-tts", "--voice", voice, "--text", content, "--write-media", f],
+                       capture_output=True, check=True)
+        files.append(f)
+
+    # Concatenate
+    list_path = "/tmp/speak_concat.txt"
+    with open(list_path, "w") as f:
+        for path in files:
+            f.write(f"file '{path}'\n")
+
+    out = "/tmp/speak_out.mp3"
+    subprocess.run(["ffmpeg", "-f", "concat", "-safe", "0", "-i", list_path,
+                    "-c", "copy", out, "-y"], capture_output=True)
+
+    subprocess.run(["mpv", out])
+
+    # Cleanup
+    for f in files + [list_path, out]:
+        try: os.remove(f)
+        except: pass
+else:
+    subprocess.run(["edge-tts", "--voice", DEFAULT_VOICE, "--text", text,
+                    "--write-media", "/tmp/speak.mp3"], check=True)
+    subprocess.run(["mpv", "/tmp/speak.mp3"])
